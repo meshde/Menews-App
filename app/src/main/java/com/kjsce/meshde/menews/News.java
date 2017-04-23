@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 
 import static android.R.id.list;
@@ -29,15 +30,34 @@ import static android.R.id.list;
 //http://timesofindia.indiatimes.com/rssfeedstopstories.cms
 public class News extends Activity {
 
+    private HashMap<String,String> map;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_news);
-        String url = "http://timesofindia.indiatimes.com/rssfeedstopstories.cms";
+        createMap();
+        String url;
+        try{
+            String type = getIntent().getExtras().getString("type");
+            url = map.get(type);
+        } catch (Exception e){
+            url = "http://timesofindia.indiatimes.com/rssfeedstopstories.cms";
+        }
+
+        //String url = "http://timesofindia.indiatimes.com/rssfeedstopstories.cms";
         View view = findViewById(android.R.id.content);
         new fetchFeeds(getBaseContext(), view).execute(url);
         //System.out.println("What about now?");
         //System.out.println(view.findViewById(R.id.all) == findViewById(R.id.all));
+    }
+    public void createMap(){
+        map = new HashMap<String,String>();
+        map.put("Top","http://timesofindia.indiatimes.com/rssfeedstopstories.cms");
+        map.put("India","http://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms");
+        map.put("World","http://timesofindia.indiatimes.com/rssfeeds/296589292.cms");
+        map.put("Sports","http://timesofindia.indiatimes.com/rssfeeds/4719148.cms");
+        map.put("Business","http://timesofindia.indiatimes.com/rssfeeds/1898055.cms");
+        map.put("Education","http://timesofindia.indiatimes.com/rssfeeds/913168846.cms");
     }
 }
 class fetchFeeds extends AsyncTask<String,Void,TripleArrayList>{
