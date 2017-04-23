@@ -3,10 +3,13 @@ package com.kjsce.meshde.menews;
 import android.app.Activity;
 import android.app.ListActivity;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
@@ -24,7 +27,7 @@ import java.util.concurrent.ExecutionException;
 import static android.R.id.list;
 
 //http://timesofindia.indiatimes.com/rssfeedstopstories.cms
-public class News extends Activity{
+public class News extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,24 +35,25 @@ public class News extends Activity{
         setContentView(R.layout.activity_news);
         String url = "http://timesofindia.indiatimes.com/rssfeedstopstories.cms";
         View view = findViewById(android.R.id.content);
-        new fetchFeeds(getBaseContext(),view).execute(url);
+        new fetchFeeds(getBaseContext(), view).execute(url);
         //System.out.println("What about now?");
         //System.out.println(view.findViewById(R.id.all) == findViewById(R.id.all));
     }
-
 }
-
-class fetchFeeds extends AsyncTask<String,Void,ArrayList>{
+class fetchFeeds extends AsyncTask<String,Void,TripleArrayList>{
 
     private Context context;
     private View view;
+    private TripleArrayList news;
     fetchFeeds(Context c,View v){
         context = c;
         view = v;
     }
     @Override
-    protected ArrayList doInBackground(String... x) {
-        ArrayList<String> news = new ArrayList<>();
+    protected TripleArrayList doInBackground(String... x) {
+        ArrayList<String> headlines = new ArrayList<>();
+        ArrayList<String> links = new ArrayList<>();
+        ArrayList<String> descriptions = new ArrayList<>();
         try {
             URL url = new URL(x[0]);
             System.out.println(url);
@@ -67,7 +71,17 @@ class fetchFeeds extends AsyncTask<String,Void,ArrayList>{
                     else if(parser.getName().equalsIgnoreCase("title") && state == 1){
                         String z = parser.nextText();
                         System.out.println(z);
-                        news.add(z);
+                        headlines.add(z);
+                    }
+                    else if(parser.getName().equalsIgnoreCase("link") && state == 1){
+                        String z = parser.nextText();
+                        System.out.println(z);
+                        links.add(z);
+                    }
+                    else if(parser.getName().equalsIgnoreCase("description") && state == 1){
+                        String z = parser.nextText();
+                        System.out.println(z);
+                        descriptions.add(z);
                     }
                 }
                 else if(eventType == XmlPullParser.END_TAG && parser.getName().equalsIgnoreCase("item")){
@@ -81,6 +95,7 @@ class fetchFeeds extends AsyncTask<String,Void,ArrayList>{
         } catch (XmlPullParserException e) {
             e.printStackTrace();
         }
+        TripleArrayList news = new TripleArrayList(headlines,links,descriptions);
         return news;
     }
     protected InputStream getInputStream(URL url){
@@ -91,13 +106,47 @@ class fetchFeeds extends AsyncTask<String,Void,ArrayList>{
             return null;
         }
     }
-    protected void onPostExecute(ArrayList news){
+    protected void onPostExecute(TripleArrayList n){
         //System.out.println("Size of News NOW is "+ news.size());
-        ArrayAdapter adapter = new ArrayAdapter(context,android.R.layout.simple_list_item_1,news);
+        news = n;
+        ArrayAdapter adapter = new ArrayAdapter(context,android.R.layout.simple_list_item_1,news.getHeadlines());
         //System.out.println("Here I am Motherfucker");
         ListView ls = (ListView) view.findViewById(android.R.id.list);
         //System.out.println("No,Here I am Motherfucking Asshole");
         ls.setAdapter(adapter);
         //System.out.println("But this is where I really am fool!");
+        ls.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                String link = news.getLinks().get(position);
+                Uri url = Uri.parse(link);
+                Intent intent = new Intent(Intent.ACTION_VIEW,url);
+                context.startActivity(intent);
+            }
+        });
+    }
+}
+
+class TripleArrayList {
+    private ArrayList<String> headlines;
+    private ArrayList<String> links;
+    private ArrayList<String> description;
+
+    TripleArrayList(ArrayList<String> h, ArrayList<String> l, ArrayList<String> d) {
+        headlines = h;
+        links = l;
+        description = d;
+    }
+
+    public ArrayList<String> getHeadlines() {
+        return headlines;
+    }
+
+    public ArrayList<String> getLinks() {
+        return links;
+    }
+
+    public ArrayList<String> getDescription() {
+        return description;
     }
 }
